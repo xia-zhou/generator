@@ -15,10 +15,10 @@
  */
 package org.mybatis.generator.codegen.mybatis3;
 
+import org.mybatis.generator.api.IntrospectedColumn;
+
 import static org.mybatis.generator.internal.util.StringUtility.escapeStringForJava;
 import static org.mybatis.generator.internal.util.StringUtility.stringHasValue;
-
-import org.mybatis.generator.api.IntrospectedColumn;
 
 public class MyBatis3FormattingUtilities {
 
@@ -49,11 +49,10 @@ public class MyBatis3FormattingUtilities {
     }
 
     /**
-     * The phrase to use in a select list. If there is a table alias, the value will be
-     * "alias.columnName as alias_columnName"
+     * The phrase to use in a select list. If there is a table alias, the value will be "alias.columnName as
+     * alias_columnName"
      *
-     * @param introspectedColumn
-     *            the introspected column
+     * @param introspectedColumn the introspected column
      * @return the proper phrase
      */
     public static String getSelectListPhrase(IntrospectedColumn introspectedColumn) {
@@ -89,6 +88,28 @@ public class MyBatis3FormattingUtilities {
         return sb.toString();
     }
 
+    public static String getItemParameterClause(IntrospectedColumn introspectedColumn) {
+        return getItemParameterClause(introspectedColumn, null);
+    }
+
+    public static String getItemParameterClause(IntrospectedColumn introspectedColumn, String prefix) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("#{item."); //$NON-NLS-1$
+        sb.append(introspectedColumn.getJavaProperty(prefix));
+        sb.append(",jdbcType="); //$NON-NLS-1$
+        sb.append(introspectedColumn.getJdbcTypeName());
+
+        if (stringHasValue(introspectedColumn.getTypeHandler())) {
+            sb.append(",typeHandler="); //$NON-NLS-1$
+            sb.append(introspectedColumn.getTypeHandler());
+        }
+
+        sb.append('}');
+
+        return sb.toString();
+    }
+
     public static String getAliasedEscapedColumnName(IntrospectedColumn introspectedColumn) {
         if (stringHasValue(introspectedColumn.getTableAlias())) {
             return introspectedColumn.getTableAlias() + '.' + getEscapedColumnName(introspectedColumn);
@@ -105,8 +126,7 @@ public class MyBatis3FormattingUtilities {
      * <p>This method is used in the Example classes and the returned value will be in a Java string.
      * So we need to escape double quotes if they are the delimiters.
      *
-     * @param introspectedColumn
-     *            the introspected column
+     * @param introspectedColumn the introspected column
      * @return the aliased column name
      */
     public static String getAliasedActualColumnName(IntrospectedColumn introspectedColumn) {
@@ -133,8 +153,7 @@ public class MyBatis3FormattingUtilities {
      * The renamed column name for a select statement. If there is a table alias, the value will be alias_columnName.
      * This is appropriate for use in a result map.
      *
-     * @param introspectedColumn
-     *            the introspected column
+     * @param introspectedColumn the introspected column
      * @return the renamed column name
      */
     public static String getRenamedColumnNameForResultMap(IntrospectedColumn introspectedColumn) {

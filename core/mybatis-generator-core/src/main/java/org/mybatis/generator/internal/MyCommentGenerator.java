@@ -29,7 +29,6 @@ import java.util.List;
  */
 public class MyCommentGenerator extends DefaultCommentGenerator {
 
-
     @Override
     public void addJavaFileComment(CompilationUnit compilationUnit) {
         if (compilationUnit instanceof Interface) {
@@ -99,7 +98,7 @@ public class MyCommentGenerator extends DefaultCommentGenerator {
         String method_name = method.getName();
         if ("deleteByPrimaryKey".equals(method_name)) {
             sb.append("根据主键删除数据库的记录");
-        } else if ("selectByPrimaryKey".equals(method_name)) {
+        } else if ("queryByPrimaryKey".equals(method_name)) {
             sb.append("根据指定主键获取一条数据库记录");
         } else if ("insert".equals(method_name)) {
             sb.append("新写入数据库记录");

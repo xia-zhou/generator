@@ -15,42 +15,25 @@
  */
 package org.mybatis.generator.api;
 
-import static org.mybatis.generator.internal.util.StringUtility.isTrue;
-import static org.mybatis.generator.internal.util.StringUtility.stringHasValue;
-
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.mybatis.generator.config.Context;
-import org.mybatis.generator.config.GeneratedKey;
-import org.mybatis.generator.config.JavaClientGeneratorConfiguration;
-import org.mybatis.generator.config.JavaModelGeneratorConfiguration;
-import org.mybatis.generator.config.ModelType;
-import org.mybatis.generator.config.PropertyHolder;
-import org.mybatis.generator.config.PropertyRegistry;
-import org.mybatis.generator.config.SqlMapGeneratorConfiguration;
-import org.mybatis.generator.config.TableConfiguration;
+import org.mybatis.generator.config.*;
 import org.mybatis.generator.internal.rules.ConditionalModelRules;
 import org.mybatis.generator.internal.rules.FlatModelRules;
 import org.mybatis.generator.internal.rules.HierarchicalModelRules;
 import org.mybatis.generator.internal.rules.Rules;
 
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.mybatis.generator.internal.util.StringUtility.isTrue;
+import static org.mybatis.generator.internal.util.StringUtility.stringHasValue;
+
 /**
- * Base class for all code generator implementations. This class provides many
- * of the housekeeping methods needed to implement a code generator, with only
- * the actual code generation methods left unimplemented.
+ * Base class for all code generator implementations. This class provides many of the housekeeping methods needed to
+ * implement a code generator, with only the actual code generation methods left unimplemented.
  *
  * @author Jeff Butler
- *
  */
 public abstract class IntrospectedTable {
 
@@ -66,9 +49,13 @@ public abstract class IntrospectedTable {
         ATTR_EXAMPLE_TYPE,
         ATTR_MYBATIS3_XML_MAPPER_PACKAGE,
         ATTR_MYBATIS3_XML_MAPPER_FILE_NAME,
-        /** also used as XML Mapper namespace if a Java mapper is generated. */
+        /**
+         * also used as XML Mapper namespace if a Java mapper is generated.
+         */
         ATTR_MYBATIS3_JAVA_MAPPER_TYPE,
-        /** used as XML Mapper namespace if no client is generated. */
+        /**
+         * used as XML Mapper namespace if no client is generated.
+         */
         ATTR_MYBATIS3_FALLBACK_SQL_MAP_NAMESPACE,
         ATTR_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME,
         ATTR_ALIASED_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME,
@@ -95,7 +82,10 @@ public abstract class IntrospectedTable {
         ATTR_MYBATIS3_UPDATE_BY_EXAMPLE_WHERE_CLAUSE_ID,
         ATTR_MYBATIS3_SQL_PROVIDER_TYPE,
         ATTR_MYBATIS_DYNAMIC_SQL_SUPPORT_TYPE,
-        ATTR_KOTLIN_RECORD_TYPE
+        ATTR_KOTLIN_RECORD_TYPE,
+        ATTR_BATCH_UPDATE_STATEMENT_ID,
+        ATTR_BATCH_UPDATE_SELECTIVE_STATEMENT_ID,
+        ATTR_BATCH_INSERT_STATEMENT_ID,
     }
 
     protected TableConfiguration tableConfiguration;
@@ -115,14 +105,15 @@ public abstract class IntrospectedTable {
     protected TargetRuntime targetRuntime;
 
     /**
-     * Attributes may be used by plugins to capture table related state between
-     * the different plugin calls.
+     * Attributes may be used by plugins to capture table related state between the different plugin calls.
      */
     protected final Map<String, Object> attributes = new HashMap<>();
 
-    /** Internal attributes are used to store commonly accessed items by all code generators. */
-    protected final Map<IntrospectedTable.InternalAttribute, String> internalAttributes =
-            new EnumMap<>(InternalAttribute.class);
+    /**
+     * Internal attributes are used to store commonly accessed items by all code generators.
+     */
+    protected final Map<IntrospectedTable.InternalAttribute, String> internalAttributes = new EnumMap<>(
+            InternalAttribute.class);
 
     /**
      * Table remarks retrieved from database metadata.
@@ -155,10 +146,8 @@ public abstract class IntrospectedTable {
     }
 
     public Optional<IntrospectedColumn> getColumn(String columnName) {
-        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream(), blobColumns.stream())
-                .flatMap(Function.identity())
-                .filter(ic -> columnMatches(ic, columnName))
-                .findFirst();
+        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream(), blobColumns.stream()).flatMap(
+                Function.identity()).filter(ic -> columnMatches(ic, columnName)).findFirst();
     }
 
     private boolean columnMatches(IntrospectedColumn introspectedColumn, String columnName) {
@@ -170,33 +159,28 @@ public abstract class IntrospectedTable {
     }
 
     /**
-     * Returns true if any of the columns in the table are JDBC Dates (as
-     * opposed to timestamps).
+     * Returns true if any of the columns in the table are JDBC Dates (as opposed to timestamps).
      *
      * @return true if the table contains DATE columns
      */
     public boolean hasJDBCDateColumns() {
-        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream())
-                .flatMap(Function.identity())
-                .anyMatch(IntrospectedColumn::isJDBCDateColumn);
+        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream()).flatMap(Function.identity()).anyMatch(
+                IntrospectedColumn::isJDBCDateColumn);
     }
 
     /**
-     * Returns true if any of the columns in the table are JDBC Times (as
-     * opposed to timestamps).
+     * Returns true if any of the columns in the table are JDBC Times (as opposed to timestamps).
      *
      * @return true if the table contains TIME columns
      */
     public boolean hasJDBCTimeColumns() {
-        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream())
-                .flatMap(Function.identity())
-                .anyMatch(IntrospectedColumn::isJDBCTimeColumn);
+        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream()).flatMap(Function.identity()).anyMatch(
+                IntrospectedColumn::isJDBCTimeColumn);
     }
 
     /**
-     * Returns the columns in the primary key. If the generatePrimaryKeyClass()
-     * method returns false, then these columns will be iterated as the
-     * parameters of the selectByPrimaryKay and deleteByPrimaryKey methods
+     * Returns the columns in the primary key. If the generatePrimaryKeyClass() method returns false, then these columns
+     * will be iterated as the parameters of the selectByPrimaryKay and deleteByPrimaryKey methods
      *
      * @return a List of ColumnDefinition objects for columns in the primary key
      */
@@ -213,15 +197,14 @@ public abstract class IntrospectedTable {
     }
 
     /**
-     * Returns all columns in the table (for use by the select by primary key and
-     * select by example with BLOBs methods).
+     * Returns all columns in the table (for use by the select by primary key and select by example with BLOBs
+     * methods).
      *
      * @return a List of ColumnDefinition objects for all columns in the table
      */
     public List<IntrospectedColumn> getAllColumns() {
-        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream(), blobColumns.stream())
-                .flatMap(Function.identity())
-                .collect(Collectors.toList());
+        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream(), blobColumns.stream()).flatMap(
+                Function.identity()).collect(Collectors.toList());
     }
 
     /**
@@ -230,9 +213,8 @@ public abstract class IntrospectedTable {
      * @return a List of ColumnDefinition objects for columns in the table that are non BLOBs
      */
     public List<IntrospectedColumn> getNonBLOBColumns() {
-        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream())
-                .flatMap(Function.identity())
-                .collect(Collectors.toList());
+        return Stream.of(primaryKeyColumns.stream(), baseColumns.stream()).flatMap(Function.identity()).collect(
+                Collectors.toList());
     }
 
     public int getNonBLOBColumnCount() {
@@ -240,9 +222,8 @@ public abstract class IntrospectedTable {
     }
 
     public List<IntrospectedColumn> getNonPrimaryKeyColumns() {
-        return Stream.of(baseColumns.stream(), blobColumns.stream())
-                .flatMap(Function.identity())
-                .collect(Collectors.toList());
+        return Stream.of(baseColumns.stream(), blobColumns.stream()).flatMap(Function.identity()).collect(
+                Collectors.toList());
     }
 
     public List<IntrospectedColumn> getBLOBColumns() {
@@ -273,7 +254,7 @@ public abstract class IntrospectedTable {
      * Gets the base record type.
      *
      * @return the type for the record (the class that holds non-primary key and non-BLOB fields). Note that the value
-     *         will be calculated regardless of whether the table has these columns or not.
+     * will be calculated regardless of whether the table has these columns or not.
      */
     public String getBaseRecordType() {
         return internalAttributes.get(InternalAttribute.ATTR_BASE_RECORD_TYPE);
@@ -296,11 +277,10 @@ public abstract class IntrospectedTable {
      * Gets the record with blo bs type.
      *
      * @return the type for the record with BLOBs class. Note that the value will be calculated regardless of whether
-     *         the table has BLOB columns or not.
+     * the table has BLOB columns or not.
      */
     public String getRecordWithBLOBsType() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_RECORD_WITH_BLOBS_TYPE);
+        return internalAttributes.get(InternalAttribute.ATTR_RECORD_WITH_BLOBS_TYPE);
     }
 
     public String getMyBatis3SqlMapNamespace() {
@@ -313,8 +293,7 @@ public abstract class IntrospectedTable {
     }
 
     public String getMyBatis3FallbackSqlMapNamespace() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_MYBATIS3_FALLBACK_SQL_MAP_NAMESPACE);
+        return internalAttributes.get(InternalAttribute.ATTR_MYBATIS3_FALLBACK_SQL_MAP_NAMESPACE);
     }
 
     public boolean hasAnyColumns() {
@@ -416,7 +395,7 @@ public abstract class IntrospectedTable {
         setSelectAllStatementId("selectAll"); //$NON-NLS-1$
         setSelectByExampleStatementId("selectByExample"); //$NON-NLS-1$
         setSelectByExampleWithBLOBsStatementId("selectByExampleWithBLOBs"); //$NON-NLS-1$
-        setSelectByPrimaryKeyStatementId("selectByPrimaryKey"); //$NON-NLS-1$
+        setSelectByPrimaryKeyStatementId("queryByPrimaryKey"); //$NON-NLS-1$
         setUpdateByExampleStatementId("updateByExample"); //$NON-NLS-1$
         setUpdateByExampleSelectiveStatementId("updateByExampleSelective"); //$NON-NLS-1$
         setUpdateByExampleWithBLOBsStatementId("updateByExampleWithBLOBs"); //$NON-NLS-1$
@@ -429,6 +408,9 @@ public abstract class IntrospectedTable {
         setBaseColumnListId("Base_Column_List"); //$NON-NLS-1$
         setBlobColumnListId("Blob_Column_List"); //$NON-NLS-1$
         setMyBatis3UpdateByExampleWhereClauseId("Update_By_Example_Where_Clause"); //$NON-NLS-1$
+        setBatchUpdateStatementId("batchUpdate");
+        setBatchUpdateSelectiveStatementId("batchUpdateSelective");
+        setBatchInsertStatementId("batchInsert");
     }
 
     public void setBlobColumnListId(String s) {
@@ -440,19 +422,39 @@ public abstract class IntrospectedTable {
     }
 
     public void setExampleWhereClauseId(String s) {
-        internalAttributes.put(InternalAttribute.ATTR_EXAMPLE_WHERE_CLAUSE_ID,
-                s);
+        internalAttributes.put(InternalAttribute.ATTR_EXAMPLE_WHERE_CLAUSE_ID, s);
     }
 
     public void setMyBatis3UpdateByExampleWhereClauseId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_MYBATIS3_UPDATE_BY_EXAMPLE_WHERE_CLAUSE_ID,
-                s);
+        internalAttributes.put(InternalAttribute.ATTR_MYBATIS3_UPDATE_BY_EXAMPLE_WHERE_CLAUSE_ID, s);
+    }
+
+    public void setBatchUpdateStatementId(String s) {
+        internalAttributes.put(InternalAttribute.ATTR_BATCH_UPDATE_STATEMENT_ID, s);
+    }
+
+    public void setBatchUpdateSelectiveStatementId(String s) {
+        internalAttributes.put(InternalAttribute.ATTR_BATCH_UPDATE_SELECTIVE_STATEMENT_ID, s);
+    }
+
+    public void setBatchInsertStatementId(String s) {
+        internalAttributes.put(InternalAttribute.ATTR_BATCH_INSERT_STATEMENT_ID, s);
+    }
+
+    public String getBatchUpdateStatementId() {
+        return internalAttributes.get(InternalAttribute.ATTR_BATCH_UPDATE_STATEMENT_ID);
+    }
+
+    public String getBatchUpdateSelectiveStatementId() {
+        return internalAttributes.get(InternalAttribute.ATTR_BATCH_UPDATE_SELECTIVE_STATEMENT_ID);
+    }
+
+    public String getBatchInsertStatementId() {
+        return internalAttributes.get(InternalAttribute.ATTR_BATCH_INSERT_STATEMENT_ID);
     }
 
     public void setResultMapWithBLOBsId(String s) {
-        internalAttributes.put(InternalAttribute.ATTR_RESULT_MAP_WITH_BLOBS_ID,
-                s);
+        internalAttributes.put(InternalAttribute.ATTR_RESULT_MAP_WITH_BLOBS_ID, s);
     }
 
     public void setBaseResultMapId(String s) {
@@ -460,66 +462,47 @@ public abstract class IntrospectedTable {
     }
 
     public void setUpdateByPrimaryKeyWithBLOBsStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_WITH_BLOBS_STATEMENT_ID,
-                s);
+        internalAttributes.put(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_WITH_BLOBS_STATEMENT_ID, s);
     }
 
     public void setUpdateByPrimaryKeySelectiveStatementId(String s) {
-        internalAttributes
-                .put(
-                        InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_SELECTIVE_STATEMENT_ID,
-                        s);
+        internalAttributes.put(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_SELECTIVE_STATEMENT_ID, s);
     }
 
     public void setUpdateByPrimaryKeyStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_STATEMENT_ID, s);
     }
 
     public void setUpdateByExampleWithBLOBsStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_WITH_BLOBS_STATEMENT_ID,
-                s);
+        internalAttributes.put(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_WITH_BLOBS_STATEMENT_ID, s);
     }
 
     public void setUpdateByExampleSelectiveStatementId(String s) {
-        internalAttributes
-                .put(
-                        InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_SELECTIVE_STATEMENT_ID,
-                        s);
+        internalAttributes.put(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_SELECTIVE_STATEMENT_ID, s);
     }
 
     public void setUpdateByExampleStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_STATEMENT_ID, s);
     }
 
     public void setSelectByPrimaryKeyStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_SELECT_BY_PRIMARY_KEY_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_SELECT_BY_PRIMARY_KEY_STATEMENT_ID, s);
     }
 
     public void setSelectByExampleWithBLOBsStatementId(String s) {
-        internalAttributes
-                .put(
-                        InternalAttribute.ATTR_SELECT_BY_EXAMPLE_WITH_BLOBS_STATEMENT_ID,
-                        s);
+        internalAttributes.put(InternalAttribute.ATTR_SELECT_BY_EXAMPLE_WITH_BLOBS_STATEMENT_ID, s);
     }
 
     public void setSelectAllStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_SELECT_ALL_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_SELECT_ALL_STATEMENT_ID, s);
     }
 
     public void setSelectByExampleStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_SELECT_BY_EXAMPLE_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_SELECT_BY_EXAMPLE_STATEMENT_ID, s);
     }
 
     public void setInsertSelectiveStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_INSERT_SELECTIVE_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_INSERT_SELECTIVE_STATEMENT_ID, s);
     }
 
     public void setInsertStatementId(String s) {
@@ -527,123 +510,99 @@ public abstract class IntrospectedTable {
     }
 
     public void setDeleteByPrimaryKeyStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_DELETE_BY_PRIMARY_KEY_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_DELETE_BY_PRIMARY_KEY_STATEMENT_ID, s);
     }
 
     public void setDeleteByExampleStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_DELETE_BY_EXAMPLE_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_DELETE_BY_EXAMPLE_STATEMENT_ID, s);
     }
 
     public void setCountByExampleStatementId(String s) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_COUNT_BY_EXAMPLE_STATEMENT_ID, s);
+        internalAttributes.put(InternalAttribute.ATTR_COUNT_BY_EXAMPLE_STATEMENT_ID, s);
     }
 
     public String getBlobColumnListId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_BLOB_COLUMN_LIST_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_BLOB_COLUMN_LIST_ID);
     }
 
     public String getBaseColumnListId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_BASE_COLUMN_LIST_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_BASE_COLUMN_LIST_ID);
     }
 
     public String getExampleWhereClauseId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_EXAMPLE_WHERE_CLAUSE_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_EXAMPLE_WHERE_CLAUSE_ID);
     }
 
     public String getMyBatis3UpdateByExampleWhereClauseId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_MYBATIS3_UPDATE_BY_EXAMPLE_WHERE_CLAUSE_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_MYBATIS3_UPDATE_BY_EXAMPLE_WHERE_CLAUSE_ID);
     }
 
     public String getResultMapWithBLOBsId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_RESULT_MAP_WITH_BLOBS_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_RESULT_MAP_WITH_BLOBS_ID);
     }
 
     public String getBaseResultMapId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_BASE_RESULT_MAP_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_BASE_RESULT_MAP_ID);
     }
 
     public String getUpdateByPrimaryKeyWithBLOBsStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_WITH_BLOBS_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_WITH_BLOBS_STATEMENT_ID);
     }
 
     public String getUpdateByPrimaryKeySelectiveStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_SELECTIVE_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_SELECTIVE_STATEMENT_ID);
     }
 
     public String getUpdateByPrimaryKeyStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_UPDATE_BY_PRIMARY_KEY_STATEMENT_ID);
     }
 
     public String getUpdateByExampleWithBLOBsStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_WITH_BLOBS_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_WITH_BLOBS_STATEMENT_ID);
     }
 
     public String getUpdateByExampleSelectiveStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_SELECTIVE_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_SELECTIVE_STATEMENT_ID);
     }
 
     public String getUpdateByExampleStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_UPDATE_BY_EXAMPLE_STATEMENT_ID);
     }
 
     public String getSelectByPrimaryKeyStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_SELECT_BY_PRIMARY_KEY_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_SELECT_BY_PRIMARY_KEY_STATEMENT_ID);
     }
 
     public String getSelectByExampleWithBLOBsStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_SELECT_BY_EXAMPLE_WITH_BLOBS_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_SELECT_BY_EXAMPLE_WITH_BLOBS_STATEMENT_ID);
     }
 
     public String getSelectAllStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_SELECT_ALL_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_SELECT_ALL_STATEMENT_ID);
     }
 
     public String getSelectByExampleStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_SELECT_BY_EXAMPLE_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_SELECT_BY_EXAMPLE_STATEMENT_ID);
     }
 
     public String getInsertSelectiveStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_INSERT_SELECTIVE_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_INSERT_SELECTIVE_STATEMENT_ID);
     }
 
     public String getInsertStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_INSERT_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_INSERT_STATEMENT_ID);
     }
 
     public String getDeleteByPrimaryKeyStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_DELETE_BY_PRIMARY_KEY_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_DELETE_BY_PRIMARY_KEY_STATEMENT_ID);
     }
 
     public String getDeleteByExampleStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_DELETE_BY_EXAMPLE_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_DELETE_BY_EXAMPLE_STATEMENT_ID);
     }
 
     public String getCountByExampleStatementId() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_COUNT_BY_EXAMPLE_STATEMENT_ID);
+        return internalAttributes.get(InternalAttribute.ATTR_COUNT_BY_EXAMPLE_STATEMENT_ID);
     }
 
     private boolean isSubPackagesEnabled(PropertyHolder propertyHolder) {
@@ -651,19 +610,17 @@ public abstract class IntrospectedTable {
     }
 
     protected String calculateJavaClientInterfacePackage() {
-        JavaClientGeneratorConfiguration config = context
-                .getJavaClientGeneratorConfiguration();
+        JavaClientGeneratorConfiguration config = context.getJavaClientGeneratorConfiguration();
         if (config == null) {
             return null;
         }
 
-        return config.getTargetPackage()
-                + fullyQualifiedTable.getSubPackageForClientOrSqlMap(isSubPackagesEnabled(config));
+        return config.getTargetPackage() + fullyQualifiedTable.getSubPackageForClientOrSqlMap(
+                isSubPackagesEnabled(config));
     }
 
     protected String calculateDynamicSqlSupportPackage() {
-        JavaClientGeneratorConfiguration config = context
-                .getJavaClientGeneratorConfiguration();
+        JavaClientGeneratorConfiguration config = context.getJavaClientGeneratorConfiguration();
         if (config == null) {
             return null;
         }
@@ -728,11 +685,9 @@ public abstract class IntrospectedTable {
     }
 
     protected String calculateJavaModelPackage() {
-        JavaModelGeneratorConfiguration config = context
-                .getJavaModelGeneratorConfiguration();
+        JavaModelGeneratorConfiguration config = context.getJavaModelGeneratorConfiguration();
 
-        return config.getTargetPackage()
-                + fullyQualifiedTable.getSubPackageForModel(isSubPackagesEnabled(config));
+        return config.getTargetPackage() + fullyQualifiedTable.getSubPackageForModel(isSubPackagesEnabled(config));
     }
 
     protected void calculateModelAttributes() {
@@ -774,8 +729,8 @@ public abstract class IntrospectedTable {
     }
 
     /**
-     * If property exampleTargetPackage specified for example use the specified value, else
-     * use default value (targetPackage).
+     * If property exampleTargetPackage specified for example use the specified value, else use default value
+     * (targetPackage).
      *
      * @return the calculated package
      */
@@ -786,14 +741,12 @@ public abstract class IntrospectedTable {
             return calculateJavaModelPackage();
         }
 
-        return exampleTargetPackage
-                + fullyQualifiedTable.getSubPackageForModel(isSubPackagesEnabled(config));
+        return exampleTargetPackage + fullyQualifiedTable.getSubPackageForModel(isSubPackagesEnabled(config));
     }
 
     protected String calculateSqlMapPackage() {
         StringBuilder sb = new StringBuilder();
-        SqlMapGeneratorConfiguration config = context
-                .getSqlMapGeneratorConfiguration();
+        SqlMapGeneratorConfiguration config = context.getSqlMapGeneratorConfiguration();
 
         // config can be null if the Java client does not require XML
         if (config != null) {
@@ -853,58 +806,51 @@ public abstract class IntrospectedTable {
     }
 
     public String getFullyQualifiedTableNameAtRuntime() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME);
+        return internalAttributes.get(InternalAttribute.ATTR_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME);
     }
 
     public String getAliasedFullyQualifiedTableNameAtRuntime() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_ALIASED_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME);
+        return internalAttributes.get(InternalAttribute.ATTR_ALIASED_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME);
     }
 
     /**
      * This method can be used to initialize the generators before they will be called.
      *
-     * <p>This method is called after all the setX methods, but before getNumberOfSubtasks(), getGeneratedJavaFiles, and
+     * <p>This method is called after all the setX methods, but before getNumberOfSubtasks(), getGeneratedJavaFiles,
+     * and
      * getGeneratedXmlFiles.
      *
-     * @param warnings
-     *            the warnings
-     * @param progressCallback
-     *            the progress callback
+     * @param warnings         the warnings
+     * @param progressCallback the progress callback
      */
-    public abstract void calculateGenerators(List<String> warnings,
-            ProgressCallback progressCallback);
+    public abstract void calculateGenerators(List<String> warnings, ProgressCallback progressCallback);
 
     /**
-     * This method should return a list of generated Java files related to this
-     * table. This list could include various types of model classes, as well as
-     * DAO classes.
+     * This method should return a list of generated Java files related to this table. This list could include various
+     * types of model classes, as well as DAO classes.
      *
      * @return the list of generated Java files for this table
      */
     public abstract List<GeneratedJavaFile> getGeneratedJavaFiles();
 
     /**
-     * This method should return a list of generated XML files related to this
-     * table. Most implementations will only return one file - the generated
-     * SqlMap file.
+     * This method should return a list of generated XML files related to this table. Most implementations will only
+     * return one file - the generated SqlMap file.
      *
      * @return the list of generated XML files for this table
      */
     public abstract List<GeneratedXmlFile> getGeneratedXmlFiles();
 
     /**
-     * This method should return a list of generated Kotlin files related to this
-     * table. This list could include a data classes, a mapper interface, extension methods, etc.
+     * This method should return a list of generated Kotlin files related to this table. This list could include a data
+     * classes, a mapper interface, extension methods, etc.
      *
      * @return the list of generated Kotlin files for this table
      */
     public abstract List<GeneratedKotlinFile> getGeneratedKotlinFiles();
 
     /**
-     * This method should return the number of progress messages that will be
-     * send during the generation phase.
+     * This method should return the number of progress messages that will be send during the generation phase.
      *
      * @return the number of progress messages
      */
@@ -913,8 +859,7 @@ public abstract class IntrospectedTable {
     /**
      * This method exists to give plugins the opportunity to replace the calculated rules if necessary.
      *
-     * @param rules
-     *            the new rules
+     * @param rules the new rules
      */
     public void setRules(Rules rules) {
         this.rules = rules;
@@ -925,93 +870,69 @@ public abstract class IntrospectedTable {
     }
 
     public void setPrimaryKeyType(String primaryKeyType) {
-        internalAttributes.put(InternalAttribute.ATTR_PRIMARY_KEY_TYPE,
-                primaryKeyType);
+        internalAttributes.put(InternalAttribute.ATTR_PRIMARY_KEY_TYPE, primaryKeyType);
     }
 
     public void setBaseRecordType(String baseRecordType) {
-        internalAttributes.put(InternalAttribute.ATTR_BASE_RECORD_TYPE,
-                baseRecordType);
+        internalAttributes.put(InternalAttribute.ATTR_BASE_RECORD_TYPE, baseRecordType);
     }
 
     public void setKotlinRecordType(String kotlinRecordType) {
-        internalAttributes.put(InternalAttribute.ATTR_KOTLIN_RECORD_TYPE,
-                kotlinRecordType);
+        internalAttributes.put(InternalAttribute.ATTR_KOTLIN_RECORD_TYPE, kotlinRecordType);
     }
 
     public void setRecordWithBLOBsType(String recordWithBLOBsType) {
-        internalAttributes.put(InternalAttribute.ATTR_RECORD_WITH_BLOBS_TYPE,
-                recordWithBLOBsType);
+        internalAttributes.put(InternalAttribute.ATTR_RECORD_WITH_BLOBS_TYPE, recordWithBLOBsType);
     }
 
     public void setExampleType(String exampleType) {
-        internalAttributes
-                .put(InternalAttribute.ATTR_EXAMPLE_TYPE, exampleType);
+        internalAttributes.put(InternalAttribute.ATTR_EXAMPLE_TYPE, exampleType);
     }
 
     public void setMyBatis3FallbackSqlMapNamespace(String sqlMapNamespace) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_MYBATIS3_FALLBACK_SQL_MAP_NAMESPACE,
-                sqlMapNamespace);
+        internalAttributes.put(InternalAttribute.ATTR_MYBATIS3_FALLBACK_SQL_MAP_NAMESPACE, sqlMapNamespace);
     }
 
-    public void setSqlMapFullyQualifiedRuntimeTableName(
-            String fullyQualifiedRuntimeTableName) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME,
-                fullyQualifiedRuntimeTableName);
+    public void setSqlMapFullyQualifiedRuntimeTableName(String fullyQualifiedRuntimeTableName) {
+        internalAttributes.put(InternalAttribute.ATTR_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME,
+                               fullyQualifiedRuntimeTableName);
     }
 
-    public void setSqlMapAliasedFullyQualifiedRuntimeTableName(
-            String aliasedFullyQualifiedRuntimeTableName) {
-        internalAttributes
-                .put(
-                        InternalAttribute.ATTR_ALIASED_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME,
-                        aliasedFullyQualifiedRuntimeTableName);
+    public void setSqlMapAliasedFullyQualifiedRuntimeTableName(String aliasedFullyQualifiedRuntimeTableName) {
+        internalAttributes.put(InternalAttribute.ATTR_ALIASED_FULLY_QUALIFIED_TABLE_NAME_AT_RUNTIME,
+                               aliasedFullyQualifiedRuntimeTableName);
     }
 
     public String getMyBatis3XmlMapperPackage() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_MYBATIS3_XML_MAPPER_PACKAGE);
+        return internalAttributes.get(InternalAttribute.ATTR_MYBATIS3_XML_MAPPER_PACKAGE);
     }
 
     public void setMyBatis3XmlMapperPackage(String mybatis3XmlMapperPackage) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_MYBATIS3_XML_MAPPER_PACKAGE,
-                mybatis3XmlMapperPackage);
+        internalAttributes.put(InternalAttribute.ATTR_MYBATIS3_XML_MAPPER_PACKAGE, mybatis3XmlMapperPackage);
     }
 
     public String getMyBatis3XmlMapperFileName() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_MYBATIS3_XML_MAPPER_FILE_NAME);
+        return internalAttributes.get(InternalAttribute.ATTR_MYBATIS3_XML_MAPPER_FILE_NAME);
     }
 
     public void setMyBatis3XmlMapperFileName(String mybatis3XmlMapperFileName) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_MYBATIS3_XML_MAPPER_FILE_NAME,
-                mybatis3XmlMapperFileName);
+        internalAttributes.put(InternalAttribute.ATTR_MYBATIS3_XML_MAPPER_FILE_NAME, mybatis3XmlMapperFileName);
     }
 
     public String getMyBatis3JavaMapperType() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_MYBATIS3_JAVA_MAPPER_TYPE);
+        return internalAttributes.get(InternalAttribute.ATTR_MYBATIS3_JAVA_MAPPER_TYPE);
     }
 
     public void setMyBatis3JavaMapperType(String mybatis3JavaMapperType) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_MYBATIS3_JAVA_MAPPER_TYPE,
-                mybatis3JavaMapperType);
+        internalAttributes.put(InternalAttribute.ATTR_MYBATIS3_JAVA_MAPPER_TYPE, mybatis3JavaMapperType);
     }
 
     public String getMyBatis3SqlProviderType() {
-        return internalAttributes
-                .get(InternalAttribute.ATTR_MYBATIS3_SQL_PROVIDER_TYPE);
+        return internalAttributes.get(InternalAttribute.ATTR_MYBATIS3_SQL_PROVIDER_TYPE);
     }
 
     public void setMyBatis3SqlProviderType(String mybatis3SqlProviderType) {
-        internalAttributes.put(
-                InternalAttribute.ATTR_MYBATIS3_SQL_PROVIDER_TYPE,
-                mybatis3SqlProviderType);
+        internalAttributes.put(InternalAttribute.ATTR_MYBATIS3_SQL_PROVIDER_TYPE, mybatis3SqlProviderType);
     }
 
     public String getMyBatisDynamicSqlSupportType() {

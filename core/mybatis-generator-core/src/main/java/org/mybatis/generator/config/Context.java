@@ -15,33 +15,25 @@
  */
 package org.mybatis.generator.config;
 
-import static org.mybatis.generator.internal.util.StringUtility.composeFullyQualifiedTableName;
-import static org.mybatis.generator.internal.util.StringUtility.isTrue;
-import static org.mybatis.generator.internal.util.StringUtility.stringHasValue;
-import static org.mybatis.generator.internal.util.messages.Messages.getString;
-
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import org.mybatis.generator.api.CommentGenerator;
-import org.mybatis.generator.api.ConnectionFactory;
-import org.mybatis.generator.api.GeneratedJavaFile;
-import org.mybatis.generator.api.GeneratedKotlinFile;
-import org.mybatis.generator.api.GeneratedXmlFile;
-import org.mybatis.generator.api.IntrospectedTable;
-import org.mybatis.generator.api.JavaFormatter;
-import org.mybatis.generator.api.JavaTypeResolver;
-import org.mybatis.generator.api.KotlinFormatter;
-import org.mybatis.generator.api.Plugin;
-import org.mybatis.generator.api.ProgressCallback;
-import org.mybatis.generator.api.XmlFormatter;
+import org.mybatis.generator.api.*;
+import org.mybatis.generator.api.intellij.IntellijTableInfo;
 import org.mybatis.generator.internal.JDBCConnectionFactory;
 import org.mybatis.generator.internal.ObjectFactory;
 import org.mybatis.generator.internal.PluginAggregator;
 import org.mybatis.generator.internal.db.DatabaseIntrospector;
+import org.mybatis.generator.internal.db.IntellijIntrospector;
+import org.mybatis.generator.internal.util.StringUtility;
+import org.mybatis.generator.internal.util.messages.Messages;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import static org.mybatis.generator.internal.util.StringUtility.*;
+import static org.mybatis.generator.internal.util.messages.Messages.getString;
 
 public class Context extends PropertyHolder {
 
@@ -87,6 +79,8 @@ public class Context extends PropertyHolder {
 
     private XmlFormatter xmlFormatter;
 
+    private boolean isIntellij = false;
+
     public Context(ModelType defaultModelType) {
         super();
 
@@ -120,8 +114,7 @@ public class Context extends PropertyHolder {
         return sqlMapGeneratorConfiguration;
     }
 
-    public void addPluginConfiguration(
-            PluginConfiguration pluginConfiguration) {
+    public void addPluginConfiguration(PluginConfiguration pluginConfiguration) {
         pluginConfigurations.add(pluginConfiguration);
     }
 
@@ -129,24 +122,24 @@ public class Context extends PropertyHolder {
      * This method does a simple validate, it makes sure that all required fields have been filled in. It does not do
      * any more complex operations such as validating that database tables exist or validating that named columns exist
      *
-     * @param errors
-     *            the errors
+     * @param errors the errors
      */
     public void validate(List<String> errors) {
         if (!stringHasValue(id)) {
             errors.add(getString("ValidationError.16")); //$NON-NLS-1$
         }
-
-        if (jdbcConnectionConfiguration == null && connectionFactoryConfiguration == null) {
-            // must specify one
-            errors.add(getString("ValidationError.10", id)); //$NON-NLS-1$
-        } else if (jdbcConnectionConfiguration != null && connectionFactoryConfiguration != null) {
-            // must not specify both
-            errors.add(getString("ValidationError.10", id)); //$NON-NLS-1$
-        } else if (jdbcConnectionConfiguration != null) {
-            jdbcConnectionConfiguration.validate(errors);
-        } else {
-            connectionFactoryConfiguration.validate(errors);
+        if (!isIntellij) {
+            if (jdbcConnectionConfiguration == null && connectionFactoryConfiguration == null) {
+                // must specify one
+                errors.add(getString("ValidationError.10", id)); //$NON-NLS-1$
+            } else if (jdbcConnectionConfiguration != null && connectionFactoryConfiguration != null) {
+                // must not specify both
+                errors.add(getString("ValidationError.10", id)); //$NON-NLS-1$
+            } else if (jdbcConnectionConfiguration != null) {
+                jdbcConnectionConfiguration.validate(errors);
+            } else {
+                connectionFactoryConfiguration.validate(errors);
+            }
         }
 
         if (javaModelGeneratorConfiguration == null) {
@@ -197,28 +190,23 @@ public class Context extends PropertyHolder {
         this.id = id;
     }
 
-    public void setJavaClientGeneratorConfiguration(
-            JavaClientGeneratorConfiguration javaClientGeneratorConfiguration) {
+    public void setJavaClientGeneratorConfiguration(JavaClientGeneratorConfiguration javaClientGeneratorConfiguration) {
         this.javaClientGeneratorConfiguration = javaClientGeneratorConfiguration;
     }
 
-    public void setJavaModelGeneratorConfiguration(
-            JavaModelGeneratorConfiguration javaModelGeneratorConfiguration) {
+    public void setJavaModelGeneratorConfiguration(JavaModelGeneratorConfiguration javaModelGeneratorConfiguration) {
         this.javaModelGeneratorConfiguration = javaModelGeneratorConfiguration;
     }
 
-    public void setJavaTypeResolverConfiguration(
-            JavaTypeResolverConfiguration javaTypeResolverConfiguration) {
+    public void setJavaTypeResolverConfiguration(JavaTypeResolverConfiguration javaTypeResolverConfiguration) {
         this.javaTypeResolverConfiguration = javaTypeResolverConfiguration;
     }
 
-    public void setJdbcConnectionConfiguration(
-            JDBCConnectionConfiguration jdbcConnectionConfiguration) {
+    public void setJdbcConnectionConfiguration(JDBCConnectionConfiguration jdbcConnectionConfiguration) {
         this.jdbcConnectionConfiguration = jdbcConnectionConfiguration;
     }
 
-    public void setSqlMapGeneratorConfiguration(
-            SqlMapGeneratorConfiguration sqlMapGeneratorConfiguration) {
+    public void setSqlMapGeneratorConfiguration(SqlMapGeneratorConfiguration sqlMapGeneratorConfiguration) {
         this.sqlMapGeneratorConfiguration = sqlMapGeneratorConfiguration;
     }
 
@@ -242,8 +230,7 @@ public class Context extends PropertyHolder {
             beginningDelimiter = value;
         } else if (PropertyRegistry.CONTEXT_ENDING_DELIMITER.equals(name)) {
             endingDelimiter = value;
-        } else if (PropertyRegistry.CONTEXT_AUTO_DELIMIT_KEYWORDS.equals(name)
-                && stringHasValue(value)) {
+        } else if (PropertyRegistry.CONTEXT_AUTO_DELIMIT_KEYWORDS.equals(name) && stringHasValue(value)) {
             autoDelimitKeywords = isTrue(value);
         }
     }
@@ -284,8 +271,7 @@ public class Context extends PropertyHolder {
         return commentGeneratorConfiguration;
     }
 
-    public void setCommentGeneratorConfiguration(
-            CommentGeneratorConfiguration commentGeneratorConfiguration) {
+    public void setCommentGeneratorConfiguration(CommentGeneratorConfiguration commentGeneratorConfiguration) {
         this.commentGeneratorConfiguration = commentGeneratorConfiguration;
     }
 
@@ -319,15 +305,13 @@ public class Context extends PropertyHolder {
     // 4. generateFiles()
     //
 
-    private final List<IntrospectedTable> introspectedTables = new ArrayList<>();
+    private List<IntrospectedTable> introspectedTables = new ArrayList<>();
 
     /**
-     * This method could be useful for users that use the library for introspection only
-     * and not for code generation.
+     * This method could be useful for users that use the library for introspection only and not for code generation.
      *
-     * @return a list containing the results of table introspection. The list will be empty
-     *     if this method is called before introspectTables(), or if no tables are found that
-     *     match the configuration
+     * @return a list containing the results of table introspection. The list will be empty if this method is called
+     * before introspectTables(), or if no tables are found that match the configuration
      */
     public List<IntrospectedTable> getIntrospectedTables() {
         return introspectedTables;
@@ -348,36 +332,25 @@ public class Context extends PropertyHolder {
     }
 
     /**
-     * Introspect tables based on the configuration specified in the
-     * constructor. This method is long running.
+     * Introspect tables based on the configuration specified in the constructor. This method is long running.
      *
-     * @param callback
-     *            a progress callback if progress information is desired, or
-     *            <code>null</code>
-     * @param warnings
-     *            any warning generated from this method will be added to the
-     *            List. Warnings are always Strings.
-     * @param fullyQualifiedTableNames
-     *            a set of table names to generate. The elements of the set must
-     *            be Strings that exactly match what's specified in the
-     *            configuration. For example, if table name = "foo" and schema =
-     *            "bar", then the fully qualified table name is "foo.bar". If
-     *            the Set is null or empty, then all tables in the configuration
-     *            will be used for code generation.
-     *
-     * @throws SQLException
-     *             if some error arises while introspecting the specified
-     *             database tables.
-     * @throws InterruptedException
-     *             if the progress callback reports a cancel
+     * @param callback                 a progress callback if progress information is desired, or
+     *                                 <code>null</code>
+     * @param warnings                 any warning generated from this method will be added to the List. Warnings are
+     *                                 always Strings.
+     * @param fullyQualifiedTableNames a set of table names to generate. The elements of the set must be Strings that
+     *                                 exactly match what's specified in the configuration. For example, if table name =
+     *                                 "foo" and schema = "bar", then the fully qualified table name is "foo.bar". If
+     *                                 the Set is null or empty, then all tables in the configuration will be used for
+     *                                 code generation.
+     * @throws SQLException         if some error arises while introspecting the specified database tables.
+     * @throws InterruptedException if the progress callback reports a cancel
      */
-    public void introspectTables(ProgressCallback callback,
-            List<String> warnings, Set<String> fullyQualifiedTableNames)
+    public void introspectTables(ProgressCallback callback, List<String> warnings, Set<String> fullyQualifiedTableNames)
             throws SQLException, InterruptedException {
 
         introspectedTables.clear();
-        JavaTypeResolver javaTypeResolver = ObjectFactory
-                .createJavaTypeResolver(this, warnings);
+        JavaTypeResolver javaTypeResolver = ObjectFactory.createJavaTypeResolver(this, warnings);
 
         Connection connection = null;
 
@@ -385,16 +358,15 @@ public class Context extends PropertyHolder {
             callback.startTask(getString("Progress.0")); //$NON-NLS-1$
             connection = getConnection();
 
-            DatabaseIntrospector databaseIntrospector = new DatabaseIntrospector(
-                    this, connection.getMetaData(), javaTypeResolver, warnings);
+            DatabaseIntrospector databaseIntrospector = new DatabaseIntrospector(this, connection.getMetaData(),
+                                                                                 javaTypeResolver, warnings);
 
             for (TableConfiguration tc : tableConfigurations) {
-                String tableName = composeFullyQualifiedTableName(tc.getCatalog(), tc
-                                .getSchema(), tc.getTableName(), '.');
+                String tableName = composeFullyQualifiedTableName(tc.getCatalog(), tc.getSchema(), tc.getTableName(),
+                                                                  '.');
 
-                if (fullyQualifiedTableNames != null
-                        && !fullyQualifiedTableNames.isEmpty()
-                        && !fullyQualifiedTableNames.contains(tableName)) {
+                if (fullyQualifiedTableNames != null && !fullyQualifiedTableNames.isEmpty() && !fullyQualifiedTableNames.contains(
+                        tableName)) {
                     continue;
                 }
 
@@ -404,8 +376,7 @@ public class Context extends PropertyHolder {
                 }
 
                 callback.startTask(getString("Progress.1", tableName)); //$NON-NLS-1$
-                List<IntrospectedTable> tables = databaseIntrospector
-                        .introspectTables(tc);
+                List<IntrospectedTable> tables = databaseIntrospector.introspectTables(tc);
 
                 if (tables != null) {
                     introspectedTables.addAll(tables);
@@ -428,22 +399,18 @@ public class Context extends PropertyHolder {
         return steps;
     }
 
-    public void generateFiles(ProgressCallback callback,
-            List<GeneratedJavaFile> generatedJavaFiles,
-            List<GeneratedXmlFile> generatedXmlFiles,
-            List<GeneratedKotlinFile> generatedKotlinFiles,
-            List<String> warnings)
-            throws InterruptedException {
+    public void generateFiles(ProgressCallback callback, List<GeneratedJavaFile> generatedJavaFiles,
+                              List<GeneratedXmlFile> generatedXmlFiles, List<GeneratedKotlinFile> generatedKotlinFiles,
+                              List<String> warnings) throws InterruptedException {
 
         pluginAggregator = new PluginAggregator();
         for (PluginConfiguration pluginConfiguration : pluginConfigurations) {
-            Plugin plugin = ObjectFactory.createPlugin(this,
-                    pluginConfiguration);
+            Plugin plugin = ObjectFactory.createPlugin(this, pluginConfiguration);
             if (plugin.validate(warnings)) {
                 pluginAggregator.addPlugin(plugin);
             } else {
                 warnings.add(getString("Warning.24", //$NON-NLS-1$
-                        pluginConfiguration.getConfigurationType(), id));
+                                       pluginConfiguration.getConfigurationType(), id));
             }
         }
 
@@ -457,34 +424,24 @@ public class Context extends PropertyHolder {
 
         for (IntrospectedTable introspectedTable : introspectedTables) {
             callback.checkCancel();
-            generatedJavaFiles.addAll(introspectedTable
-                    .getGeneratedJavaFiles());
-            generatedXmlFiles.addAll(introspectedTable
-                    .getGeneratedXmlFiles());
-            generatedKotlinFiles.addAll(introspectedTable
-                    .getGeneratedKotlinFiles());
+            generatedJavaFiles.addAll(introspectedTable.getGeneratedJavaFiles());
+            generatedXmlFiles.addAll(introspectedTable.getGeneratedXmlFiles());
+            generatedKotlinFiles.addAll(introspectedTable.getGeneratedKotlinFiles());
 
-            generatedJavaFiles.addAll(pluginAggregator
-                    .contextGenerateAdditionalJavaFiles(introspectedTable));
-            generatedXmlFiles.addAll(pluginAggregator
-                    .contextGenerateAdditionalXmlFiles(introspectedTable));
-            generatedKotlinFiles.addAll(pluginAggregator
-                    .contextGenerateAdditionalKotlinFiles(introspectedTable));
+            generatedJavaFiles.addAll(pluginAggregator.contextGenerateAdditionalJavaFiles(introspectedTable));
+            generatedXmlFiles.addAll(pluginAggregator.contextGenerateAdditionalXmlFiles(introspectedTable));
+            generatedKotlinFiles.addAll(pluginAggregator.contextGenerateAdditionalKotlinFiles(introspectedTable));
         }
 
-        generatedJavaFiles.addAll(pluginAggregator
-                .contextGenerateAdditionalJavaFiles());
-        generatedXmlFiles.addAll(pluginAggregator
-                .contextGenerateAdditionalXmlFiles());
-        generatedKotlinFiles.addAll(pluginAggregator
-                .contextGenerateAdditionalKotlinFiles());
+        generatedJavaFiles.addAll(pluginAggregator.contextGenerateAdditionalJavaFiles());
+        generatedXmlFiles.addAll(pluginAggregator.contextGenerateAdditionalXmlFiles());
+        generatedKotlinFiles.addAll(pluginAggregator.contextGenerateAdditionalKotlinFiles());
     }
 
     /**
-     * This method creates a new JDBC connection from the values specified in the configuration file.
-     * If you call this method, then you are responsible
-     * for closing the connection (See {@link Context#closeConnection(Connection)}). If you do not
-     * close the connection, then there could be connection leaks.
+     * This method creates a new JDBC connection from the values specified in the configuration file. If you call this
+     * method, then you are responsible for closing the connection (See {@link Context#closeConnection(Connection)}). If
+     * you do not close the connection, then there could be connection leaks.
      *
      * @return a new connection created from the values in the configuration file
      * @throws SQLException if any error occurs while creating the connection
@@ -501,8 +458,8 @@ public class Context extends PropertyHolder {
     }
 
     /**
-     * This method closes a JDBC connection and ignores any errors. If the passed connection is null,
-     * then the method does nothing.
+     * This method closes a JDBC connection and ignores any errors. If the passed connection is null, then the method
+     * does nothing.
      *
      * @param connection a JDBC connection to close, may be null
      */
@@ -517,8 +474,7 @@ public class Context extends PropertyHolder {
     }
 
     public boolean autoDelimitKeywords() {
-        return autoDelimitKeywords != null
-                && autoDelimitKeywords;
+        return autoDelimitKeywords != null && autoDelimitKeywords;
     }
 
     public ConnectionFactoryConfiguration getConnectionFactoryConfiguration() {
@@ -527,5 +483,51 @@ public class Context extends PropertyHolder {
 
     public void setConnectionFactoryConfiguration(ConnectionFactoryConfiguration connectionFactoryConfiguration) {
         this.connectionFactoryConfiguration = connectionFactoryConfiguration;
+    }
+
+    public void introspectIntellijTables(ProgressCallback callback, List<String> warnings,
+                                         Set<String> fullyQualifiedTableNames, IntellijTableInfo tableInfo)
+            throws InterruptedException, SQLException {
+        introspectedTables = new ArrayList();
+        JavaTypeResolver javaTypeResolver = ObjectFactory.createJavaTypeResolver(this, warnings);
+        callback.startTask(Messages.getString("Progress.0"));
+        IntellijIntrospector databaseIntrospector = new IntellijIntrospector(this, javaTypeResolver, warnings,
+                                                                             tableInfo);
+        Iterator var7 = tableConfigurations.iterator();
+
+        while (true) {
+            TableConfiguration tc;
+            String tableName;
+            do {
+                if (!var7.hasNext()) {
+                    return;
+                }
+
+                tc = (TableConfiguration) var7.next();
+                tableName = StringUtility.composeFullyQualifiedTableName(tc.getCatalog(), tc.getSchema(),
+                                                                         tc.getTableName(), '.');
+            } while (fullyQualifiedTableNames != null && !fullyQualifiedTableNames.isEmpty() && !fullyQualifiedTableNames.contains(
+                    tableName));
+
+            if (!tc.areAnyStatementsEnabled()) {
+                warnings.add(Messages.getString("Warning.0", tableName));
+            } else {
+                callback.startTask(Messages.getString("Progress.1", tableName));
+                List<IntrospectedTable> tables = databaseIntrospector.introspectTables(tc);
+                if (tables != null) {
+                    introspectedTables.addAll(tables);
+                }
+
+                callback.checkCancel();
+            }
+        }
+    }
+
+    public boolean isIntellij() {
+        return isIntellij;
+    }
+
+    public void setIntellij(boolean intellij) {
+        isIntellij = intellij;
     }
 }

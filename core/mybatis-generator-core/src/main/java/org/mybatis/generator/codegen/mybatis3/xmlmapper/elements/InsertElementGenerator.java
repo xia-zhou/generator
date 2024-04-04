@@ -15,16 +15,15 @@
  */
 package org.mybatis.generator.codegen.mybatis3.xmlmapper.elements;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.mybatis.generator.api.IntrospectedColumn;
-import org.mybatis.generator.api.dom.OutputUtilities;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.xml.TextElement;
 import org.mybatis.generator.api.dom.xml.XmlElement;
 import org.mybatis.generator.codegen.mybatis3.ListUtilities;
 import org.mybatis.generator.codegen.mybatis3.MyBatis3FormattingUtilities;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class InsertElementGenerator extends AbstractXmlElementGenerator {
 
@@ -68,15 +67,15 @@ public class InsertElementGenerator extends AbstractXmlElementGenerator {
                 valuesClause.append(", "); //$NON-NLS-1$
             }
 
-            if (valuesClause.length() > 80) {
-                answer.addElement(new TextElement(insertClause.toString()));
-                insertClause.setLength(0);
-                OutputUtilities.xmlIndent(insertClause, 1);
-
-                valuesClauses.add(valuesClause.toString());
-                valuesClause.setLength(0);
-                OutputUtilities.xmlIndent(valuesClause, 1);
-            }
+            //            if (valuesClause.length() > 80) {
+            //                answer.addElement(new TextElement(insertClause.toString()));
+            //                insertClause.setLength(0);
+            //                OutputUtilities.xmlIndent(insertClause, 1);
+            //
+            //                valuesClauses.add(valuesClause.toString());
+            //                valuesClause.setLength(0);
+            //                OutputUtilities.xmlIndent(valuesClause, 1);
+            //            }
         }
 
         insertClause.append(')');
