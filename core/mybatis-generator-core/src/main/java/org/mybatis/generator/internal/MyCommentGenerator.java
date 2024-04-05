@@ -110,6 +110,8 @@ public class MyCommentGenerator extends DefaultCommentGenerator {
             sb.append("动态字段,根据主键来更新符合条件的数据库记录");
         } else if ("updateByPrimaryKey".equals(method_name)) {
             sb.append("根据主键来更新符合条件的数据库记录");
+        } else if ("batchInsert".equals(method_name)) {
+            sb.append("批量写入数据库记录");
         }
         method.addJavaDocLine(sb.toString());
         method.addJavaDocLine(" * ");
