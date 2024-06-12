@@ -28,7 +28,7 @@
     <!--    </parent>-->
     <groupId>org.mybatis.generator</groupId>
     <artifactId>mybatis-generator-core</artifactId>
-    <version>1.4.1-SL</version>
+    <version>1.4.1-XZ</version>
     <packaging>jar</packaging>
     <name>MyBatis Generator Core</name>
 
@@ -372,20 +372,16 @@
 
     <distributionManagement>
         <repository>
-            <id>nexus-releases</id>
-            <url>http://nexus.shuli.com/content/repositories/releases</url>
+            <id>rdc-releases</id>
+            <url>https://packages.aliyun.com/maven/repository/2176092-release-Msx4FI</url>
         </repository>
         <snapshotRepository>
-            <id>nexus-snapshots</id>
-            <url>http://nexus.shuli.com/content/repositories/snapshots</url>
+            <id>rdc-snapshots</id>
+            <url>https://packages.aliyun.com/maven/repository/2176092-snapshot-mPB765</url>
         </snapshotRepository>
     </distributionManagement>
 
     <repositories>
-        <repository>
-            <id>nexus-releases</id>
-            <url>http://nexus.shuli.com/content/group/public/</url>
-        </repository>
         <repository>
             <id>sonatype-oss-snapshots</id>
             <name>Sonatype OSS Snapshots Repository</name>
