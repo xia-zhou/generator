@@ -112,6 +112,8 @@ public class MyCommentGenerator extends DefaultCommentGenerator {
             sb.append("根据主键来更新符合条件的数据库记录");
         } else if ("batchInsert".equals(method_name)) {
             sb.append("批量写入数据库记录");
+        } else {
+            sb.append("自动生成注释清修改");
         }
         method.addJavaDocLine(sb.toString());
         method.addJavaDocLine(" * ");
